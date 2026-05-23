@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PulsarOps — AI DevOps Copilot | Infrastructure Autopilot</title>
+<meta name="description" content="PulsarOps is an AI-native DevOps copilot that monitors, detects, and self-heals your infrastructure in real-time. Powered by MiMo, Claude, and DeepSeek models." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#04080f;
+    --bg-2:#070c16;
+    --ink:#e5ecf8;
+    --muted:#7b8fae;
+    --accent:#00d4ff;
+    --accent-2:#6366f1;
+    --accent-3:#10b981;
+    --line:rgba(255,255,255,.06);
+    --card:rgba(255,255,255,.03);
+    --card-hi:rgba(255,255,255,.06);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:'Space Grotesk',system-ui,sans-serif;overflow-x:hidden;scroll-behavior:smooth}
+  a{color:inherit;text-decoration:none}
+  code,pre,.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+
+  /* ==== Animated BG ==== */
+  .bg-canvas{position:fixed;inset:0;z-index:-2}
+  .bg-grad{position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(800px 500px at 0% 0%, rgba(0,212,255,.18), transparent 60%),
+      radial-gradient(700px 500px at 100% 20%, rgba(99,102,241,.14), transparent 60%),
+      radial-gradient(600px 500px at 50% 100%, rgba(16,185,129,.12), transparent 60%),
+      linear-gradient(180deg,#04080f,#060b18);
+  }
+  .bg-grid{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.12;
+    background-image:
+      linear-gradient(rgba(0,212,255,.12) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(0,212,255,.12) 1px,transparent 1px);
+    background-size:40px 40px;
+    mask-image:radial-gradient(ellipse at 50% 20%, #000 25%, transparent 75%);
+  }
+
+  /* ==== Nav ==== */
+  .nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(20px) saturate(140%);
+    background:rgba(6,11,24,.6);border-bottom:1px solid var(--line)}
+  .nav-inner{max-width:1240px;margin:auto;padding:13px 28px;display:flex;align-items:center;gap:26px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
+  .logo{width:30px;height:30px;border-radius:8px;
+    background:conic-gradient(from 180deg,#00d4ff,#6366f1,#10b981,#00d4ff);
+    box-shadow:0 0 20px rgba(0,212,255,.45),inset 0 0 10px rgba(255,255,255,.2);
+    position:relative;overflow:hidden}
+  .logo::after{content:"";position:absolute;inset:5px;border-radius:5px;background:#060b18}
+  .nav-links{display:flex;gap:4px;flex-wrap:wrap;margin-left:6px}
+  .nav-links a{padding:8px 11px;border-radius:9px;color:var(--muted);font-size:13.5px;transition:.2s}
+  .nav-links a:hover{color:var(--ink);background:var(--card)}
+  .nav-cta{margin-left:auto;display:flex;gap:10px}
+  .btn{padding:10px 16px;border-radius:11px;font-size:13.5px;font-weight:600;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:8px}
+  .btn:hover{background:var(--card-hi);transform:translateY(-1px)}
+  .btn-accent{background:linear-gradient(135deg,#00d4ff,#6366f1);border:none;color:#fff}
+  .btn-accent:hover{filter:brightness(1.1);box-shadow:0 8px 30px rgba(0,212,255,.3)}
+
+  /* ==== Layout ==== */
+  section{max-width:1240px;margin:0 auto;padding:90px 28px;position:relative}
+  .eyebrow{display:inline-flex;gap:8px;align-items:center;padding:6px 12px;border:1px solid var(--line);
+    border-radius:999px;font-size:12px;color:var(--muted);background:var(--card)}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  h1{font-size:clamp(40px,5.8vw,72px);line-height:1.06;letter-spacing:-.02em;font-weight:700;margin:18px 0}
+  h2{font-size:clamp(26px,3.2vw,42px);line-height:1.1;letter-spacing:-.01em;font-weight:600;margin-bottom:14px}
+  h3{font-size:19px;font-weight:600;margin-bottom:7px}
+  p.lead{font-size:17px;color:var(--muted);max-width:660px;line-height:1.62}
+  .grad-text{background:linear-gradient(135deg,#00d4ff 0%,#6366f1 45%,#10b981 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  /* ==== Hero ==== */
+  .hero{padding-top:56px;padding-bottom:36px}
+  .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:44px;align-items:center}
+  @media(max-width:980px){.hero-grid{grid-template-columns:1fr}}
+  .hero-cta{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:44px}
+  .stat{padding:18px;border:1px solid var(--line);background:var(--card);border-radius:14px}
+  .stat b{display:block;font-size:24px;font-weight:700}
+  .stat span{color:var(--muted);font-size:13px}
+
+  /* code window */
+  .code{border:1px solid var(--line);background:linear-gradient(180deg,rgba(12,18,32,.9),rgba(6,11,24,.9));
+    border-radius:14px;overflow:hidden;box-shadow:0 28px 56px -16px rgba(0,0,0,.55),0 0 0 1px rgba(0,212,255,.06)}
+  .code-bar{display:flex;gap:6px;padding:11px 14px;border-bottom:1px solid var(--line);align-items:center}
+  .dot-r{width:11px;height:11px;border-radius:50%}
+  .dr1{background:#ff5f57}.dr2{background:#febc2e}.dr3{background:#28c840}
+  .code-bar .file{margin-left:14px;color:var(--muted);font-size:12px}
+  .code pre{padding:16px 18px;font-size:13px;line-height:1.58;color:#c4d3e8;overflow:auto;max-height:360px}
+  .kw{color:#a5b4fc}.fn{color:#00d4ff}.str{color:#86efac}.cm{color:#475569;font-style:italic}.num{color:#fbbf24}
+
+  /* ==== Cards ==== */
+  .grid{display:grid;gap:16px}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
+  .grid-4{grid-template-columns:repeat(4,1fr)}
+  .grid-2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:880px){.grid-3,.grid-4,.grid-2{grid-template-columns:1fr}}
+  .card{padding:22px;border:1px solid var(--line);background:var(--card);border-radius:var(--radius);
+    transition:.25s;position:relative;overflow:hidden}
+  .card:hover{transform:translateY(-3px);background:var(--card-hi);border-color:rgba(0,212,255,.25)}
+  .card .icon{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;
+    background:linear-gradient(135deg,rgba(0,212,255,.22),rgba(99,102,241,.15));
+    border:1px solid rgba(0,212,255,.28);font-size:19px;margin-bottom:13px}
+  .card p{color:var(--muted);font-size:14px;line-height:1.6}
+
+  /* ==== Pipeline ==== */
+  .pipeline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:28px 0}
+  .pipe-node{padding:14px 20px;border:1px solid var(--line);border-radius:12px;background:var(--card);text-align:center;font-size:14px;font-weight:600}
+  .pipe-arrow{color:var(--accent);font-size:22px}
+
+  /* ==== Timeline ==== */
+  .timeline{position:relative;padding-left:34px;margin:28px 0}
+  .timeline::before{content:"";position:absolute;left:10px;top:0;bottom:0;width:2px;
+    background:linear-gradient(180deg,var(--accent),var(--accent-2),var(--accent-3))}
+  .tl-item{position:relative;margin-bottom:28px}
+  .tl-item::before{content:"";position:absolute;left:-28px;top:4px;width:12px;height:12px;border-radius:50%;
+    background:var(--accent);box-shadow:0 0 12px rgba(0,212,255,.5)}
+
+  /* ==== Metrics ==== */
+  .metric{padding:24px;border:1px solid var(--line);border-radius:14px;background:var(--card);text-align:center}
+  .metric .val{font-size:36px;font-weight:700;margin:8px 0}
+  .metric .label{color:var(--muted);font-size:13px}
+  .metric canvas{display:block;margin:auto;width:100%;height:100px}
+
+  /* ==== Pricing ==== */
+  .price{padding:26px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+  .price.hot{border-color:rgba(0,212,255,.5);background:linear-gradient(180deg,rgba(0,212,255,.08),rgba(99,102,241,.04));
+    box-shadow:0 0 50px rgba(0,212,255,.15)}
+  .price h3{font-size:17px;color:var(--muted)}
+  .price .amt{font-size:40px;font-weight:700;margin:5px 0 2px}
+  .price ul{list-style:none;margin:16px 0}
+  .price li{padding:7px 0;color:var(--muted);font-size:14px;display:flex;align-items:center;gap:9px}
+  .price li::before{content:"✓";color:var(--accent);font-weight:700}
+  .ribbon{position:absolute;top:12px;right:12px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;
+    background:linear-gradient(135deg,#00d4ff,#6366f1);color:#fff}
+
+  /* ==== Partners ==== */
+  .partners{display:flex;flex-wrap:wrap;gap:14px}
+  .partner{padding:10px 18px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:13px;color:var(--muted)}
+
+  /* ==== Testimonials ==== */
+  .quote{padding:24px;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+  .quote blockquote{color:var(--muted);font-size:15px;line-height:1.6;margin-bottom:14px;font-style:italic}
+  .quote .attr{display:flex;align-items:center;gap:12px}
+  .quote .avatar{width:36px;height:36px;border-radius:50%;
+    background:linear-gradient(135deg,#00d4ff,#6366f1);display:grid;place-items:center;font-size:15px}
+
+  /* ==== Terminal-proof ==== */
+  .proof{padding:20px;background:#030712;border:1px solid var(--line);border-radius:12px;font-family:'JetBrains Mono';font-size:13px;color:#94a3b8;overflow:auto;line-height:1.6}
+  .proof .ok{color:var(--accent)}.proof .warn{color:#fbbf24}.proof .err{color:#f87171}
+
+  /* ==== Integrations ==== */
+  .int-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  @media(max-width:780px){.int-grid{grid-template-columns:repeat(3,1fr)}}
+  .int-item{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--card);
+    text-align:center;font-size:13px;transition:.2s}
+  .int-item:hover{border-color:rgba(0,212,255,.3)}
+  .int-item .ico{font-size:28px;display:block;margin-bottom:8px}
+
+  /* ==== FAQ ==== */
+  details{padding:16px 20px;border:1px solid var(--line);border-radius:12px;background:var(--card);margin-bottom:10px}
+  details[open]{background:var(--card-hi)}
+  details summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center}
+  details summary::after{content:"＋";font-size:20px;color:var(--accent)}
+  details[open] summary::after{content:"－"}
+  details p{color:var(--muted);margin-top:12px;line-height:1.6}
+
+  /* ==== Footer ==== */
+  footer{border-top:1px solid var(--line);padding:44px 28px 28px;background:rgba(4,8,15,.7);margin-top:56px}
+  .foot-inner{max-width:1240px;margin:auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:34px}
+  @media(max-width:880px){.foot-inner{grid-template-columns:1fr 1fr}}
+  .foot-inner h4{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:14px}
+  .foot-inner ul{list-style:none}
+  .foot-inner li{margin:7px 0}
+  .foot-inner li a{color:var(--muted);font-size:14px;transition:.2s}
+  .foot-inner li a:hover{color:var(--ink)}
+  .copy{text-align:center;color:var(--muted);font-size:13px;margin-top:32px;padding-top:18px;border-top:1px solid var(--line)}
+
+  /* Link banner */
+  .link-banner{display:flex;align-items:center;gap:10px;padding:10px 16px;border:1px solid rgba(0,212,255,.2);
+    border-radius:999px;background:rgba(0,212,255,.06);font-size:13px;color:var(--accent);margin-top:18px;cursor:pointer;transition:.2s;width:fit-content}
+  .link-banner:hover{background:rgba(0,212,255,.12)}
+
+  /* fade */
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease}
+  .reveal.in{opacity:1;transform:none}
+  .div-line{height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent);margin:56px 0}
+</style>
+</head>
+<body>
+
+<canvas class="bg-canvas" id="bgCanvas"></canvas>
+<div class="bg-grad"></div>
+<div class="bg-grid"></div>
+
+<!-- ============ NAV ============ -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#" class="brand"><div class="logo"></div> PulsarOps</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#monitoring">Monitoring</a>
+      <a href="#integrations">Integrations</a>
+      <a href="#usecases">Use Cases</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#docs">Docs</a>
+      <a href="#blog">Blog</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="nav-cta">
+      <a class="btn" href="#docs">Sign in</a>
+      <a class="btn btn-accent" href="#pricing">Start free →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="hero-grid">
+    <div class="reveal">
+      <span class="eyebrow"><span class="dot"></span> Now powered by MiMo · 100T Token Initiative</span>
+      <h1>Your infrastructure, <span class="grad-text">self-healed</span> while you sleep.</h1>
+      <p class="lead">PulsarOps is an AI-native DevOps copilot that watches your stack 24/7, detects anomalies before incidents, auto-remediates with PRs, and keeps your SLOs green — across cloud, k8s, and serverless. Built on MiMo-Series, Claude-Series, and DeepSeek-Series models.</p>
+      <div class="hero-cta">
+        <a class="btn btn-accent" href="#pricing">Start for free</a>
+        <a class="btn" href="#pipeline">See how it works →</a>
+      </div>
+      <a class="link-banner" href="https://nebulacraft-ai-studio.vercel.app" target="_blank">🛰 Also check out our sister project: NebulaCraft AI Studio →</a>
+      <div class="stats">
+        <div class="stat"><b>4.7M</b><span>metrics analyzed / day</span></div>
+        <div class="stat"><b>92%</b><span>incidents auto-resolved</span></div>
+        <div class="stat"><b>&lt;30s</b><span>mean time to detect</span></div>
+        <div class="stat"><b>3,200+</b><span>clusters monitored</span></div>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <div class="code">
+        <div class="code-bar">
+          <span class="dot-r dr1"></span><span class="dot-r dr2"></span><span class="dot-r dr3"></span>
+          <span class="file mono">~/pulsarops/config.yaml</span>
+        </div>
+<pre><span class="cm"># PulsarOps — declarative self-healing config</span>
+<span class="kw">apiVersion</span>: pulsarops.dev/v2
+<span class="kw">kind</span>: AutoRemediation
+<span class="kw">spec</span>:
+  <span class="kw">slo</span>:
+    - <span class="kw">name</span>: <span class="str">"api-latency"</span>
+      <span class="kw">target</span>: <span class="str">"p99 &lt; 200ms"</span>
+      <span class="kw">onBreach</span>:
+        - <span class="fn">scale_up</span>(replicas=<span class="num">3</span>)
+        - <span class="fn">rollout_canary</span>(weight=<span class="num">10</span>)
+  <span class="kw">anomaly</span>:
+    <span class="kw">model</span>: <span class="str">"mimo-v2.5-pro"</span>
+    <span class="kw">window</span>: <span class="str">"5m"</span>
+    <span class="kw">on_detect</span>:
+      - <span class="fn">open_pr</span>(team=<span class="str">"@sre"</span>)
+      - <span class="fn">page_oncall</span>(if=<span class="str">"critical"</span>)
+</pre>
+      </div>
+      <div class="partners" style="margin-top:16px">
+        <span class="partner">Kubernetes</span>
+        <span class="partner">AWS</span>
+        <span class="partner">GCP</span>
+        <span class="partner">Azure</span>
+        <span class="partner">Terraform</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section id="features" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Capabilities</span>
+  <h2>Everything an SRE team needs, on autopilot</h2>
+  <p class="lead">Full-stack observability meets LLM-powered remediation. Monitor, detect, triage, fix, and document — all in one control plane.</p>
+
+  <div class="grid grid-3" style="margin-top:32px">
+    <div class="card"><div class="icon">📡</div><h3>Live Telemetry Ingest</h3><p>Metrics, logs, and traces from Prometheus, Datadog, Grafana, CloudWatch, and OpenTelemetry — normalized in real-time.</p></div>
+    <div class="card"><div class="icon">🧠</div><h3>Anomaly Detection</h3><p>MiMo-powered unsupervised models spot drift, saturation, and latency spikes 5 minutes before they become incidents.</p></div>
+    <div class="card"><div class="icon">🔧</div><h3>Auto-Remediation</h3><p>Scale pods, roll back deploys, toggle feature flags, flush caches — the agent writes and applies Terraform/Pulumi diffs.</p></div>
+    <div class="card"><div class="icon">📋</div><h3>Incident Timeline</h3><p>Auto-generated incident reports with root-cause analysis, owner, blast radius, and post-mortem draft in Slack/Teams.</p></div>
+    <div class="card"><div class="icon">🔀</div><h3>Canary Deployments</h3><p>Progressive rollouts with automatic rollback on error-rate increase. Multi-armed bandit across regions.</p></div>
+    <div class="card"><div class="icon">🔐</div><h3>Policy Guardrails</h3><p>Define blast-radius limits. The agent never scales past your budget cap or touches prod without approval gates.</p></div>
+    <div class="card"><div class="icon">📊</div><h3>SLO Tracking</h3><p>Define SLIs, track error budgets, and get proactive alerts when you're burning budget too fast.</p></div>
+    <div class="card"><div class="icon">🌐</div><h3>Multi-Cloud Aware</h3><p>One pane for AWS, GCP, Azure, and bare-metal. The agent understands provider-specific resources natively.</p></div>
+    <div class="card"><div class="icon">💬</div><h3>ChatOps Native</h3><p>Interact from Slack, Teams, or Discord. Ask "why is latency high?" and get an AI-drafted RCA in seconds.</p></div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ PIPELINE ============ -->
+<section id="pipeline" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> How It Works</span>
+  <h2>From metric spike to merged fix — in minutes</h2>
+  <p class="lead">PulsarOps runs a continuous loop: observe → detect → reason → act → verify. Every action is logged and reversible.</p>
+
+  <div class="pipeline">
+    <div class="pipe-node">📡 Ingest</div><span class="pipe-arrow">→</span>
+    <div class="pipe-node">🔍 Detect</div><span class="pipe-arrow">→</span>
+    <div class="pipe-node">🧠 Reason</div><span class="pipe-arrow">→</span>
+    <div class="pipe-node">⚡ Act</div><span class="pipe-arrow">→</span>
+    <div class="pipe-node">✅ Verify</div>
+  </div>
+
+  <div class="proof" style="margin-top:24px">
+<span class="ok">[16:42:03]</span> prometheus: api_latency_p99 142ms → 487ms <span class="warn">(↑ 243%)</span>
+<span class="ok">[16:42:08]</span> anomaly_detector: mimo-pro classified as <span class="warn">REGRESSION</span>
+<span class="ok">[16:42:09]</span> triage: root cause → <span class="fn">deployment/billing-svc v2.14.0</span> (deployed 8min ago)
+<span class="ok">[16:42:12]</span> remediation: rollback billing-svc → v2.13.2
+<span class="ok">[16:42:18]</span> kubectl: rollout undo deployment/billing-svc <span class="ok">[OK]</span>
+<span class="ok">[16:42:34]</span> verify: api_latency_p99 → 151ms <span class="ok">[SLO: GREEN]</span>
+<span class="ok">[16:42:36]</span> report: incident #2847 auto-closed · RCA drafted → #sre-slack
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ MONITORING ============ -->
+<section id="monitoring" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Monitoring</span>
+  <h2>Real-time dashboards that think</h2>
+  <p class="lead">Beyond charts — the AI annotates every spike, correlates across services, and answers natural-language questions about your stack.</p>
+
+  <div class="grid grid-4" style="margin-top:28px">
+    <div class="metric"><span class="label">API p99 Latency</span><div class="val grad-text">142ms</div><canvas id="m1"></canvas></div>
+    <div class="metric"><span class="label">Error Rate</span><div class="val" style="color:#10b981">0.12%</div><canvas id="m2"></canvas></div>
+    <div class="metric"><span class="label">Uptime (30d)</span><div class="val" style="color:#00d4ff">99.97%</div><canvas id="m3"></canvas></div>
+    <div class="metric"><span class="label">Cost / Day</span><div class="val" style="color:#fbbf24">$1,247</div><canvas id="m4"></canvas></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:24px">
+    <div class="card">
+      <h3>ChatOps: Ask your infrastructure</h3>
+      <p>"Why did error rate spike at 3am?" → PulsarOps correlates deploy logs, trace samples, and config changes into a single answer.</p>
+    </div>
+    <div class="card">
+      <h3>Proactive Alerts</h3>
+      <p>No more threshold ping-pong. AI classifies severity, identifies owner, and routes to the right channel with context.</p>
+    </div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ INTEGRATIONS ============ -->
+<section id="integrations" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Integrations</span>
+  <h2>Works with your existing stack</h2>
+  <p class="lead">First-class support for 40+ tools. Drop PulsarOps into any CI/CD pipeline with a single Helm chart.</p>
+
+  <div class="int-grid" style="margin-top:28px">
+    <div class="int-item"><span class="ico">☸</span>Kubernetes</div>
+    <div class="int-item"><span class="ico">🐳</span>Docker</div>
+    <div class="int-item"><span class="ico">🏗</span>Terraform</div>
+    <div class="int-item"><span class="ico">🟠</span>Pulumi</div>
+    <div class="int-item"><span class="ico">📊</span>Prometheus</div>
+    <div class="int-item"><span class="ico">📈</span>Grafana</div>
+    <div class="int-item"><span class="ico">🐕</span>Datadog</div>
+    <div class="int-item"><span class="ico">☁️</span>CloudWatch</div>
+    <div class="int-item"><span class="ico">🔭</span>OpenTelemetry</div>
+    <div class="int-item"><span class="ico">📢</span>PagerDuty</div>
+    <div class="int-item"><span class="ico">💬</span>Slack</div>
+    <div class="int-item"><span class="ico">🔵</span>Azure DevOps</div>
+    <div class="int-item"><span class="ico">🟣</span>GitHub Actions</div>
+    <div class="int-item"><span class="ico">🟠</span>GitLab CI</div>
+    <div class="int-item"><span class="ico">🦊</span>Jira</div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ USE CASES ============ -->
+<section id="usecases" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Use Cases</span>
+  <h2>Teams shipping faster with PulsarOps</h2>
+
+  <div class="timeline">
+    <div class="tl-item"><h3>E-commerce · Black Friday traffic surge</h3><p>PulsarOps auto-scaled 12 services in 90 seconds, maintained 99.99% uptime during 8× normal traffic, and saved $4,200 by scaling down at 4am.</p></div>
+    <div class="tl-item"><h3>Fintech · Latency regression caught in canary</h3><p>A database migration caused p99 to jump 3× in canary traffic. PulsarOps halted rollout, opened a PR with the fix, and merged after SRE approval — all in 6 minutes.</p></div>
+    <div class="tl-item"><h3>Healthcare · Compliance drift detection</h3><p>Detected an unauthorized IAM policy change, reverted via Terraform, and generated a compliance report for SOC 2 audit within 4 minutes of the change.</p></div>
+    <div class="tl-item"><h3>Gaming · Auto-remediation during tournament</h3><p>During a 50k-player tournament, a memory leak in the matchmaker triggered OOM kills. PulsarOps detected the pattern, rolled the deployment, and kept the tournament running.</p></div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ PRICING ============ -->
+<section id="pricing" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Pricing</span>
+  <h2>Scale your SRE without scaling headcount</h2>
+  <p class="lead">Transparent, usage-based pricing with predictable monthly caps.</p>
+
+  <div class="grid grid-3" style="margin-top:32px">
+    <div class="price">
+      <h3>Starter</h3>
+      <div class="amt">$0<span style="font-size:14px;color:var(--muted)">/mo</span></div>
+      <p style="color:var(--muted)">For small teams learning DevOps automation.</p>
+      <ul>
+        <li>5 services</li><li>Basic anomaly detection</li>
+        <li>Slack alerts</li><li>Community support</li>
+      </ul>
+      <a class="btn" href="#" style="width:100%;justify-content:center">Get started</a>
+    </div>
+    <div class="price hot">
+      <span class="ribbon">Most Popular</span>
+      <h3>Pro</h3>
+      <div class="amt">$79<span style="font-size:14px;color:var(--muted)">/mo</span></div>
+      <p style="color:var(--muted)">For engineering teams with production workloads.</p>
+      <ul>
+        <li>50 services</li><li>Auto-remediation (MiMo-powered)</li>
+        <li>Canary deploys</li><li>SLO tracking</li>
+        <li>ChatOps (Slack + Teams)</li>
+      </ul>
+      <a class="btn btn-accent" href="#" style="width:100%;justify-content:center">Start 14-day trial</a>
+    </div>
+    <div class="price">
+      <h3>Enterprise</h3>
+      <div class="amt">$399<span style="font-size:14px;color:var(--muted)">/mo</span></div>
+      <p style="color:var(--muted)">For platform teams managing multi-cloud fleets.</p>
+      <ul>
+        <li>Unlimited services</li><li>Multi-cloud policy engine</li>
+        <li>SOC 2 compliance reports</li><li>SSO + SCIM</li><li>Dedicated support + SLA</li>
+      </ul>
+      <a class="btn" href="#" style="width:100%;justify-content:center">Talk to sales</a>
+    </div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ DOCS ============ -->
+<section id="docs" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Quickstart</span>
+  <h2>Deploy in 3 commands</h2>
+  <p class="lead">Install via Helm, connect your Prometheus, and PulsarOps starts learning your baseline in minutes.</p>
+
+  <div class="grid grid-2" style="margin-top:28px">
+    <div class="code">
+      <div class="code-bar"><span class="dot-r dr1"></span><span class="dot-r dr2"></span><span class="dot-r dr3"></span><span class="file mono">install.sh</span></div>
+<pre><span class="cm"># 1 — Install the Helm chart</span>
+$ helm repo add pulsarops https://charts.pulsarops.dev
+$ helm install pulsarops pulsarops/pulsarops-agent \
+    --set apiKey=$PULSAR_API_KEY \
+    --set model=mimo-v2.5-pro
+
+<span class="cm"># 2 — Verify connectivity</span>
+$ pulsarctl status
+<span class="ok">✓ Agent connected · 3 pods healthy</span>
+<span class="ok">✓ Prometheus detected · 847 metrics ingesting</span>
+</pre>
+    </div>
+    <div class="code">
+      <div class="code-bar"><span class="dot-r dr1"></span><span class="dot-r dr2"></span><span class="dot-r dr3"></span><span class="file mono">ask.sh</span></div>
+<pre><span class="cm"># Ask natural-language questions</span>
+$ pulsarctl ask "why is api-gateway slow?"
+<span class="ok">→ Root cause:</span> billing-svc connection pool
+  exhausted (200/200 used). Deployed v2.14.0
+  12 min ago added 3 new DB queries per request.
+<span class="ok">→ Suggested fix:</span> increase pool to 400 or
+  revert to v2.13.2.
+<span class="ok">→ Action:</span> PR #1847 opened (revert to v2.13.2)
+
+<span class="cm"># Approve with one keystroke</span>
+$ pulsarctl approve 1847
+<span class="ok">✓ Rolled out · latency back to 141ms · 3m 12s</span>
+</pre>
+    </div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ BLOG ============ -->
+<section id="blog" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Engineering Blog</span>
+  <h2>From the SRE trenches</h2>
+  <div class="grid grid-3" style="margin-top:28px">
+    <div class="card"><div class="icon">📝</div><h3>How we reduced MTTR by 94%</h3><p>A deep dive into anomaly detection models, action planning with MiMo, and our verification loop that prevents cascading failures.</p><p class="mono" style="margin-top:12px;font-size:12px;color:var(--accent)">May 20 · 12 min</p></div>
+    <div class="card"><div class="icon">🏗</div><h3>Terraform-as-code remediation</h3><p>Why we chose Terraform over raw kubectl for agent actions — idempotency, audit trails, and state management.</p><p class="mono" style="margin-top:12px;font-size:12px;color:var(--accent)">May 14 · 8 min</p></div>
+    <div class="card"><div class="icon">🔐</div><h3>Policy-first agent design</h3><p>How we prevent LLM agents from going rogue in production — blast-radius guards, approval gates, and rollback circuits.</p><p class="mono" style="margin-top:12px;font-size:12px;color:var(--accent)">May 7 · 10 min</p></div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ FAQ ============ -->
+<section id="faq" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> FAQ</span>
+  <h2>Common questions</h2>
+  <div style="margin-top:24px;max-width:860px">
+    <details open>
+      <summary>How does PulsarOps differ from PagerDuty or Datadog?</summary>
+      <p>PagerDuty alerts you. Datadog shows you charts. PulsarOps detects, diagnoses, and <em>fixes</em> — generating PRs, rollbacks, and post-mortems automatically. It's the difference between a smoke alarm and a fire sprinkler.</p>
+    </details>
+    <details>
+      <summary>Can the agent break my production environment?</summary>
+      <p>Only within guardrails you define. Set blast-radius limits (max scale-out, allowed namespaces, budget caps) and approval gates. Every action is logged and one-click reversible.</p>
+    </details>
+    <details>
+      <summary>What models does PulsarOps use?</summary>
+      <p>MiMo Pro (default for anomaly classification and action planning), Claude Sonnet (incident reports), DeepSeek (cost analysis). Bring your own model via OpenAI-compatible endpoint.</p>
+    </details>
+    <details>
+      <summary>How long until it learns my baseline?</summary>
+      <p>Typically 24–48 hours of metric history for basic anomaly detection. Richer remediation patterns improve over 1–2 weeks as the agent observes your deploy frequency and traffic patterns.</p>
+    </details>
+    <details>
+      <summary>Is PulsarOps related to NebulaCraft?</summary>
+      <p>Yes — NebulaCraft handles code synthesis (writing the code), PulsarOps handles operations (running the code in production). Together they form a full AI-native dev-to-ops loop. <a href="https://nebulacraft-ai-studio.vercel.app" style="color:var(--accent)">Visit NebulaCraft →</a></p>
+    </details>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="foot-inner">
+    <div>
+      <div class="brand"><div class="logo"></div> PulsarOps</div>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:12px;max-width:330px">AI-native DevOps copilot. Monitor, detect, and self-heal — powered by MiMo. Part of the 100T Token Initiative.</p>
+      <a class="link-banner" href="https://nebulacraft-ai-studio.vercel.app" target="_blank" style="margin-top:14px">🛰 Sister project: NebulaCraft AI Studio →</a>
+    </div>
+    <div><h4>Product</h4><ul><li><a href="#features">Features</a></li><li><a href="#pipeline">Pipeline</a></li><li><a href="#monitoring">Monitoring</a></li><li><a href="#pricing">Pricing</a></li></ul></div>
+    <div><h4>Resources</h4><ul><li><a href="#docs">Docs</a></li><li><a href="#blog">Blog</a></li><li><a href="#integrations">Integrations</a></li><li><a href="#faq">FAQ</a></li></ul></div>
+    <div><h4>Company</h4><ul><li><a href="#">About</a></li><li><a href="#">Careers</a></li><li><a href="#">Privacy</a></li><li><a href="#">Terms</a></li></ul></div>
+  </div>
+  <div class="copy">© 2026 PulsarOps · Built with MiMo · 100T Token Initiative participant · <a href="https://nebulacraft-ai-studio.vercel.app" style="color:var(--accent)">NebulaCraft</a></div>
+</footer>
+
+<script>
+  /* Reveal */
+  const io=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in')),{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  /* Mini sparklines */
+  function sparkline(canvasId,color,data){
+    const c=document.getElementById(canvasId);if(!c)return;
+    const ctx=c.getContext('2d');
+    const dpr=devicePixelRatio||1;
+    c.width=c.offsetWidth*dpr;c.height=100*dpr;ctx.scale(dpr,dpr);
+    const w=c.offsetWidth,h=100,pad=4;
+    const max=Math.max(...data),min=Math.min(...data);
+    const range=max-min||1;
+    ctx.beginPath();
+    data.forEach((v,i)=>{
+      const x=pad+i*(w-pad*2)/(data.length-1);
+      const y=h-pad-((v-min)/range)*(h-pad*2);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+    // fill
+    const lastX=pad+(data.length-1)*(w-pad*2)/(data.length-1);
+    ctx.lineTo(lastX,h);ctx.lineTo(pad,h);ctx.closePath();
+    ctx.fillStyle=color.replace(')',',.08)').replace('rgb','rgba');
+    ctx.fill();
+  }
+  sparkline('m1','rgb(0,212,255)',[130,145,138,152,200,487,210,165,148,142]);
+  sparkline('m2','rgb(16,185,129)',[0.15,0.12,0.18,0.09,0.11,0.14,0.13,0.10,0.12,0.12]);
+  sparkline('m3','rgb(99,102,241)',[99.9,99.95,99.97,99.96,99.98,99.97,99.99,99.97,99.97,99.97]);
+  sparkline('m4','rgb(251,191,36)',[1400,1350,1280,1320,1500,1650,1420,1280,1260,1247]);
+
+  /* Circuit particle background */
+  (()=>{
+    const c=document.getElementById('bgCanvas'),ctx=c.getContext('2d');
+    let w,h,nodes=[];
+    function resize(){
+      w=c.width=innerWidth*devicePixelRatio;h=c.height=innerHeight*devicePixelRatio;
+      c.style.width=innerWidth+'px';c.style.height=innerHeight+'px';
+      nodes=Array.from({length:160},()=>({
+        x:Math.random()*w,y:Math.random()*h,
+        vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,
+        r:Math.random()*1.3+.4,
+        hue:Math.random()*40+180
+      }));
+    }
+    resize();addEventListener('resize',resize);
+    function loop(){
+      ctx.clearRect(0,0,w,h);
+      for(const n of nodes){
+        n.x+=n.vx;n.y+=n.vy;
+        if(n.x<0||n.x>w)n.vx*=-1;if(n.y<0||n.y>h)n.vy*=-1;
+        ctx.beginPath();ctx.fillStyle=`hsla(${n.hue},100%,72%,.45)`;
+        ctx.arc(n.x,n.y,n.r*devicePixelRatio,0,Math.PI*2);ctx.fill();
+      }
+      for(let i=0;i<nodes.length;i++){
+        for(let j=i+1;j<nodes.length;j++){
+          const a=nodes[i],b=nodes[j],d=Math.hypot(a.x-b.x,a.y-b.y);
+          if(d<140*devicePixelRatio){
+            ctx.strokeStyle=`rgba(0,212,255,${(1-d/(140*devicePixelRatio))*.15})`;
+            ctx.lineWidth=devicePixelRatio*.4;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+  })();
+</script>
+</body>
+</html>
